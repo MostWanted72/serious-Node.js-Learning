@@ -1,116 +1,27 @@
-const fs = require('fs')
 const express = require('express');
 const config = require('./config');
+const morgan = require('morgan')
+
+const tourRouter = require('./routes/tourRouter')
+const userRouter = require('./routes/userRouter')
 
 const port = config.port;
-
 const app = express();
 
+// 1. middlewares
+app.use(morgan('dev'))
 app.use(express.json());
 
-const tourData = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`))
-
-app.get('/api/v1/tours', (req, res) => {
-    res.status(200).send({
-        status: 'success',
-        results: tourData.length,
-        data: {
-            tours: tourData
-        }
-    })
+//can be used to add a parameter to requst
+app.use((req, res, next) => {
+    req.requestedTime = new Date().toLocaleString();
+    console.log(req.requestedTime)
+    next();
 })
 
-app.get('/api/v1/tours/:id', (req, res) => {
-    const id = Number(req.params.id) + 1;
+// 3. routes
+app.use('/api/v1/tours', tourRouter);
+app.use('/api/v1/users', userRouter)    
 
-    if (id >= tourData.length) {
-        res.status(404).send({
-            status: 'failed',
-            message: 'Invalid ID'
-        })
-    }
-
-    const requiredTour = tourData.find(el => id === el.id);
-
-    res.status(200).send({
-        status: 'success',
-        data: {
-            tours: requiredTour
-        }
-    })
-})
-
-app.post('/api/v1/tours', (req, res) => {
-    const newId = tourData[tourData.length - 1].id + 1;
-    const newTour = Object.assign({ id: newId }, req.body);
-
-    tourData.push(newTour);
-
-    fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(tourData), (err) => {
-        res.status(201).send({
-            status: 'success',
-            data: {
-                tour: newTour
-            }
-        })
-    })
-})
-
-app.patch('/api/v1/tours/:id', (req, res) => {
-    const id = Number(req.params.id);
-
-    if (id >= tourData.length) {
-        res.status(404).send({
-            status: 'failed',
-            message: 'Invalid ID'
-        })
-    }
-
-    let updatedToure = {};
-
-    const newToursData = tourData.map((el) => {
-        if (el.id === id) {
-            updatedToure = Object.assign({
-                ...el,
-                ...req.body
-            })
-            return {
-                ...el,
-                ...req.body
-            }
-        } else {
-            return el;
-        }
-    })
-
-    fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(newToursData), (err) => {
-        res.status(200).send({
-            status: 'success',
-            data: {
-                tour: updatedToure
-            }
-        })
-    })
-})
-
-app.delete('/api/v1/tours/:id', (req, res) => {
-    const id = Number(req.params.id);
-
-    if (id >= tourData.length) {
-        res.status(404).send({
-            status: 'failed',
-            message: 'Invalid ID'
-        })
-    }
-
-    const newTours = tourData.filter((el) => el.id === id);
-
-    fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(newTours), (err) => {
-        res.status(204).send({
-            status: 'success',
-            message: "Tour Deleted"
-        })
-    })
-})
-
+// 4. start the server
 app.listen(port, () => console.log(`server started at port: ${port}`))
