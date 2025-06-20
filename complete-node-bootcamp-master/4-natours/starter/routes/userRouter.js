@@ -1,49 +1,15 @@
 const express = require('express');
+const userController = require('../controllers/userController')
 
 const router = express.Router()
 
-const getAllUsers = (req, res) => {
-    res.status(500).send({
-        status: 'error',
-        message: 'This route is under development'
-    })
-}
-
-const createAUser = (req, res) => {
-    res.status(500).send({
-        status: 'error',
-        message: 'This route is under development'
-    })
-}
-
-const getUserById = (req, res) => {
-    res.status(500).send({
-        status: 'error',
-        message: 'This route is under development'
-    })
-}
-
-const updateUserById = (req, res) => {
-    res.status(500).send({
-        status: 'error',
-        message: 'This route is under development'
-    })
-}
-
-const deleteUserById = (req, res) => {
-    res.status(500).send({
-        status: 'error',
-        message: 'This route is under development'
-    })
-}
-
 router.route('/')
-    .get(getAllUsers)
-    .post(createAUser)
+    .get(userController.getAllUsers)
+    .post(userController.createAUser)
 
 router.route('/:id')
-    .get(getUserById)
-    .patch(updateUserById)
-    .delete(deleteUserById)
+    .get(userController.getUserById)
+    .patch(userController.updateUserById)
+    .delete(userController.deleteUserById)
 
 module.exports = router;
