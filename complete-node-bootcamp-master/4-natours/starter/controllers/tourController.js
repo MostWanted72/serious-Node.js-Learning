@@ -1,5 +1,14 @@
 const Tour = require('../models/tourModel')
 
+exports.aliasTopToures = (req, res, next) => {
+	req.query = { ...req.query, 
+		limit: 5,
+		sort: "ratingsAverage,-price",
+		fields: "name,price,difficulty,ratingsAverage,duration,summary"
+	}
+	next()
+}
+
 exports.checkValidBody = (req, res, next) => {
 	if (!req.body.name || !req.body.price) {
 		return res.status(400).send({
@@ -12,7 +21,49 @@ exports.checkValidBody = (req, res, next) => {
 
 exports.getAllTours = async (req, res) => {
 	try {
-		const tours = await Tour.find()
+		const queryObj = {...req.query};
+		const excludeFields = ['page', 'sort', 'limit', 'fields']
+		excludeFields.forEach(el => delete queryObj[el]);
+		
+		// advance querying
+		let queryStr = JSON.stringify(queryObj);
+		queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`)
+
+		let query = Tour.find(JSON.parse(queryStr))
+
+		// sorting
+		if (req.query.sort) {
+			const querySort = req.query.sort.split(',').join(' ')
+			query = query.sort(querySort)
+		} else {
+			query = query.sort('-createAt')
+		}
+
+		// field limiting
+		if (req.query.fields) {
+			const queryField = req.query.fields.split(',').join(' ');
+			console.log(queryField)
+			query = query.select(queryField)
+		} else {
+			query = query.select('-__v')
+		}
+
+		// pagination
+		const page = req.query.page * 1 || 1;
+		const limit = req.query.limit * 1 || 10;
+		const skip = (page - 1) * limit;
+		query = query.skip(skip).limit(limit);
+
+		if (req.query.page) {
+			const countTours = await Tour.countDocuments();
+			if (skip >= countTours) {
+				throw new Error("The page does not exist")
+			}
+		}
+
+		const tours = await query
+
+		// const tours = await Tour.find().where('duration').equals(5).where('difficulty').equals('easy')
 		res.status(200).send({
 			status: 'success',
 			results: tours.length,
@@ -23,7 +74,7 @@ exports.getAllTours = async (req, res) => {
 	} catch (err) {
 		res.status(500).send({
 			status: "failed",
-			message: "failed to fetch data from db"
+			message: err.message
 		})
 	}
 };
@@ -61,7 +112,7 @@ exports.createATour = async (req, res) => {
 	} catch (err) {
 		res.status(400).send({
 			status: 'failed',
-			message: "Invalid data sent!"
+			message: err
 		})
 	}
 };

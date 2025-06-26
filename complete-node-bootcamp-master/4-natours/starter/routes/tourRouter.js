@@ -11,6 +11,8 @@ const router = express.Router()
 
 // router.param('id', tourController.checkId)
 
+router.route('/top-five-best').get(tourController.aliasTopToures, tourController.getAllTours)
+
 router.route('/')
     .get(tourController.getAllTours)
     .post(tourController.createATour)
